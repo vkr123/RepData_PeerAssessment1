@@ -1,25 +1,71 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible_Week2"
+output: html_document
+Author: Kailash
 ---
+##Loading Data
+```{r, echo = TRUE}
+step<-read.csv('activity.csv')
+step$date<-as.character(step$date,"%d/%m/%Y")
+```
+## Mean total number of steps taken per day
+```{r, echo = TRUE}
+step_day<-aggregate(step$steps,by=list(step$date), FUN=sum, na.rm=TRUE)
+hist(step_day$x, col='red', main='Total number of steps per day', xlab='Number of steps')
+mean(step_day$x)
+median(step_day$x)
+```
+## Average Daily activity pattern
+```{r, echo = TRUE}
+step_avg<-aggregate(step$steps,by=list(step$interval), FUN=mean, na.rm=TRUE)
+plot(step_avg$x, col='red', type='l', main='Time Series Plot', ylab='Average number of steps', xlab='5 minute interval')
+```
 
+## Maximum number of steps
+```{r, echo = TRUE}
+step_avg[step_avg$x==max(step_avg$x),]$Group.1
+```
 
-## Loading and preprocessing the data
+## Imputing Missing Values
+```{r, echo = TRUE}
+sum(is.na(step$steps))
+new=step
+for (i in 1:nrow(step)){
+  if(is.na(step$steps[i])){
+    new$steps[i]=step_avg$x[match(step$interval,step_avg$Group.1)[i]]
+  }
+}
+new_day_na<-aggregate(new$steps,by=list(new$date), FUN=sum, na.rm=TRUE)
+hist(new_day_na$x, col='red', main='Total number of steps per day', xlab='Number of steps')
+```
 
+## Mean and Median of Imputed Data Set
+```{r, echo = TRUE}
+mean(new_day_na$x)
+median(new_day_na$x)
+```
 
+## Weekdays and Weekends
+```{r, echo = TRUE}
+week<-weekdays(as.Date(new$date), TRUE)
+new['daytype']<-week
+for (i in 1:nrow(step)){
+  if(new$daytype[i]=='Mon' | new$daytype[i]=='Tue' | new$daytype[i]=='Wed' | new$daytype[i]=='Thu' | new$daytype[i]=='Fri'){
+    new$daytype[i]="weekday"
+  }
+  else{
+    new$daytype[i]="weekend"
+  }
+}
 
-## What is mean total number of steps taken per day?
+library(ggplot2)
+new_wday<-aggregate(new[new$daytype=='weekday',]$steps,by=list(new[new$daytype=='weekday',]$interval), FUN=mean, na.rm=TRUE)
+new_wday['type']<-'weekday'
+new_wend<-aggregate(new[new$daytype=='weekend',]$steps,by=list(new[new$daytype=='weekend',]$interval), FUN=mean, na.rm=TRUE)
+new_wend['type']<-'weekend'
+final<-rbind(new_wday,new_wend)
+final<-transform(final,type=factor(type))
+ggplot(data = final, mapping = aes(x = Group.1, y = x)) + geom_line() +
+  facet_grid(rows = vars(type))+labs(x='Interval',y='Average number of steps', title = 'Average steps - Weekday/Weekend')
+```
 
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
